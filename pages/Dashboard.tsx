@@ -1,209 +1,222 @@
 
 import React, { useState, useEffect } from 'react';
-import { SummaryCard, LevelCard } from '../components/DashboardCards';
-import { MOCK_SUMMARY, WEEKLY_ACTIVITY, MONTHLY_ACTIVITY } from '../constants';
+import { SummaryCard } from '../components/DashboardCards';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getDeveloperInsights } from '../services/geminiService';
+import { getDeveloperAssistantAdvice } from '../services/geminiService';
+import { fetchSummaryStats, fetchActivityData, isUsingDemoData, getUserRole } from '../services/apiService';
+import { SummaryStats, ActivityPoint, AIAssistantAdvice } from '../types';
 import { motion } from 'framer-motion';
 
 const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
-  const [insights, setInsights] = useState<string>("Analyzing your coding patterns...");
-  const [isLoadingInsights, setIsLoadingInsights] = useState(true);
-
-  const chartData = viewMode === 'weekly' ? WEEKLY_ACTIVITY : MONTHLY_ACTIVITY;
+  const [stats, setStats] = useState<SummaryStats | null>(null);
+  const [activity, setActivity] = useState<ActivityPoint[]>([]);
+  const [advice, setAdvice] = useState<AIAssistantAdvice | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const role = getUserRole();
 
   useEffect(() => {
-    const fetchInsights = async () => {
-      setIsLoadingInsights(true);
-      const result = await getDeveloperInsights(MOCK_SUMMARY);
-      setInsights(result);
-      setIsLoadingInsights(false);
+    const loadData = async () => {
+      const s = await fetchSummaryStats();
+      const a = await fetchActivityData(viewMode);
+      setStats(s);
+      setActivity(a);
+      
+      const assistantAdvice = await getDeveloperAssistantAdvice(s);
+      setAdvice(assistantAdvice);
+      setIsLoading(false);
     };
-    fetchInsights();
-  }, []);
+    loadData();
+  }, [viewMode]);
+
+  if (!stats) return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+
+  const titlePrefix = role === 'admin' ? 'Organization' : role === 'team' ? 'Team' : 'Personal';
 
   return (
-    <div className="space-y-8 pb-16">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-8">
+    <div className="space-y-6 pb-12">
+      <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg italic">
-            Visualizing your professional coding evolution and consistency.
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{titlePrefix} Dashboard</h1>
+          <p className="text-xs text-slate-500">
+            {isUsingDemoData() ? 'Viewing Mock Data Context' : 'Real-time Analytics Feed'}
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/10 px-4 py-2 rounded-xl border border-blue-100 dark:border-blue-800/30 shrink-0">
-          <i className="fas fa-sync-alt text-blue-500 animate-spin-slow"></i>
-          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Live Mirror Syncing</span>
+        <div className="flex items-center gap-2">
+           <div className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${isUsingDemoData() ? 'bg-amber-100 text-amber-600' : 'bg-blue-50 text-blue-500 dark:bg-blue-900/10'}`}>
+            {isUsingDemoData() ? 'Sandbox Mode' : 'Live Sync'}
+          </div>
+          <div className="text-[10px] font-black px-3 py-1 bg-slate-900 text-white rounded-full uppercase tracking-widest">
+            Role: {role}
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div className="md:col-span-2">
-          <LevelCard rank={MOCK_SUMMARY.currentRank} progress={MOCK_SUMMARY.levelProgress} />
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <SummaryCard 
-          label="Total Commits" 
-          value={MOCK_SUMMARY.totalCommits.toLocaleString()} 
+          label={role === 'individual' ? "Total Commits" : "Team Output"} 
+          value={stats.totalCommits} 
           icon="fa-code-commit" 
-          colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-          description="Total reflected code contributions."
+          colorClass="bg-blue-100 text-blue-600"
+          description="Total contribution points aggregated from connected repositories."
         />
         <SummaryCard 
-          label="Productivity Score" 
-          value={MOCK_SUMMARY.productivityScore} 
+          label="Pulse Score" 
+          value={stats.productivityScore} 
           icon="fa-bolt" 
-          colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-          description="Calculated based on logic impact and complexity."
+          colorClass="bg-amber-100 text-amber-600"
+          description="Algorithmic assessment of work-to-maintenance ratio."
         />
         <SummaryCard 
-          label="Activity Streak" 
-          value={`${MOCK_SUMMARY.activityStreak} Days`} 
-          icon="fa-fire" 
-          colorClass="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"
-          description="Number of consecutive contribution days."
-        />
-        <SummaryCard 
-          label="Weekly Velocity" 
-          value={MOCK_SUMMARY.weeklyVelocity} 
-          icon="fa-gauge-high" 
-          colorClass="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
-          description="Average throughput for the last 7 days."
-        />
-        <SummaryCard 
-          label="Top Language" 
-          value={MOCK_SUMMARY.mostUsedLanguage} 
+          label="Top Stack" 
+          value={stats.mostUsedLanguage} 
           icon="fa-code" 
-          colorClass="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
-          description="The programming language you mirrored most this cycle."
+          colorClass="bg-emerald-100 text-emerald-600"
         />
         <SummaryCard 
-          label="Productive Hours" 
-          value={MOCK_SUMMARY.peakProductiveHours} 
+          label="Active Hours" 
+          value={stats.peakProductiveHours} 
           icon="fa-clock" 
-          colorClass="bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400"
-          description="Your mirrored peak performance window."
+          colorClass="bg-violet-100 text-violet-600"
+        />
+        <SummaryCard 
+          label="Active Streak" 
+          value={stats.activityStreak} 
+          icon="fa-fire" 
+          colorClass="bg-orange-100 text-orange-600"
+        />
+        <SummaryCard 
+          label="Work Velocity" 
+          value={stats.weeklyVelocity} 
+          icon="fa-gauge-high" 
+          colorClass="bg-indigo-100 text-indigo-600"
         />
       </div>
 
-      {/* Main Trends Chart */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center justify-between mb-10 gap-4">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Growth Trends</h3>
-            <p className="text-sm text-slate-500 mt-1">Reflecting productivity across time cycles.</p>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 dark:text-white">Trend Analysis</h3>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+              <button onClick={() => setViewMode('weekly')} className={`px-4 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-400' : 'text-slate-500'}`}>Weekly</button>
+              <button onClick={() => setViewMode('monthly')} className={`px-4 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-400' : 'text-slate-500'}`}>Monthly</button>
+            </div>
           </div>
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <button 
-              onClick={() => setViewMode('weekly')}
-              className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
-            >
-              Weekly
-            </button>
-            <button 
-              onClick={() => setViewMode('monthly')}
-              className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
-            >
-              Monthly
-            </button>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={activity}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#94a3b8" fontSize={10} />
+                <YAxis axisLine={false} tickLine={false} stroke="#94a3b8" fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Area type="monotone" dataKey="commits" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={3} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
-        
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorRef" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
-              <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#94a3b8" fontSize={12} dy={10} />
-              <YAxis axisLine={false} tickLine={false} stroke="#94a3b8" fontSize={12} dx={-10} />
-              <Tooltip 
-                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-              />
-              <Area type="monotone" dataKey="commits" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorRef)" animationDuration={1000} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
-      {/* Habit Distribution - One Line */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="flex items-center gap-3 mb-6">
-          <i className="fas fa-calendar-alt text-blue-500"></i>
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Habit Distribution Map</h3>
-        </div>
-        <div className="overflow-x-auto no-scrollbar">
-          <div className="flex gap-1.5 pb-2 min-w-max">
-            {Array.from({ length: 52 }).map((_, i) => {
-              const isActive = (i * 7) % 11 < 4 || i % 5 === 0;
-              return (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <h3 className="font-bold mb-4 text-xs uppercase tracking-widest text-slate-500">Burnout Monitor</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">System Risk</span>
+                <span className={`font-bold ${stats.burnoutRisk === 'High' ? 'text-red-500' : stats.burnoutRisk === 'Medium' ? 'text-amber-500' : 'text-emerald-500'}`}>{stats.burnoutRisk}</span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-1000 ${stats.burnoutRisk === 'High' ? 'bg-red-500 w-full' : stats.burnoutRisk === 'Medium' ? 'bg-amber-500 w-1/2' : 'bg-emerald-500 w-1/4'}`}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 italic">Determined by commit timing consistency and weekend activity patterns.</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <h3 className="font-bold mb-4 text-xs uppercase tracking-widest text-slate-500">Momentum Radar</h3>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: 28 }).map((_, i) => (
                 <div 
                   key={i} 
-                  className={`w-3.5 h-3.5 rounded-sm shrink-0 transition-transform hover:scale-125 ${isActive ? 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.25)]' : 'bg-slate-100 dark:bg-slate-800'}`}
-                  title={`Week ${i + 1}`}
+                  className={`aspect-square rounded-sm ${ (i % 7 < 4 || i % 5 === 0) ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'}`}
                 ></div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="mt-4 flex justify-between text-[9px] text-slate-400 font-black uppercase tracking-widest">
-          <span>Past 52 Weeks Activity</span>
-          <div className="flex gap-2">
-            <span>Low</span>
-            <div className="flex gap-0.5">
-              {[0, 1, 2, 3].map(v => <div key={v} className={`w-2.5 h-2.5 rounded-sm ${v === 0 ? 'bg-slate-100 dark:bg-slate-800' : v === 1 ? 'bg-blue-200' : v === 2 ? 'bg-blue-400' : 'bg-blue-600'}`}></div>)}
+              ))}
             </div>
-            <span>High</span>
+            <p className="text-[10px] text-slate-400 mt-3 text-center uppercase font-black">28-Day Heatmap</p>
           </div>
         </div>
       </div>
 
-      {/* AI Coach - Simplistic and Below Map */}
-      <div className="bg-slate-900 dark:bg-slate-950 p-8 rounded-3xl text-white shadow-xl border border-slate-800">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
-            <i className="fas fa-magic text-blue-400 text-lg"></i>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold tracking-tight">AI Coach Reflection</h3>
-            <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">Direct Guidance</p>
-          </div>
+      {/* AI Assistant - Integrated Bottom Panel */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-slate-900 dark:bg-slate-900 border border-slate-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <i className="fas fa-robot text-8xl rotate-12"></i>
         </div>
-        
-        <div className="space-y-6">
-          {isLoadingInsights ? (
-            <div className="space-y-3 animate-pulse">
-              <div className="h-3 bg-slate-800 rounded-full w-full"></div>
-              <div className="h-3 bg-slate-800 rounded-full w-2/3"></div>
-            </div>
-          ) : (
-            <div className="bg-white/5 p-6 rounded-2xl border border-white/10 text-slate-300 text-base font-medium italic">
-              "{insights}"
-            </div>
-          )}
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
-            <div className="flex items-center gap-3 text-rose-400 shrink-0">
-              <i className="fas fa-heart-pulse"></i>
-              <span className="font-bold text-xs uppercase">Health Signal</span>
+        <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+          <div className="shrink-0">
+            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <i className="fas fa-brain text-2xl"></i>
             </div>
-            <p className="text-rose-200/70 text-xs text-center sm:text-left">
-              Current burnout risk is <strong>{MOCK_SUMMARY.burnoutRisk}</strong>. Keep sessions balanced.
-            </p>
-            <button className="px-5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-bold uppercase rounded-lg transition-colors border border-rose-500/30">
-              Details
-            </button>
+          </div>
+          
+          <div className="flex-grow space-y-8 w-full">
+            <div>
+              <h2 className="text-xl font-bold mb-2">DevPulse AI Assistant</h2>
+              <p className="text-slate-400 text-sm">Providing {role}-focused coaching based on the latest performance telemetry.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3 mb-3">
+                  <i className="fas fa-rocket text-blue-400"></i>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-blue-400">Optimization</h4>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed italic">
+                  {isLoading ? "Consulting logs..." : advice?.performance}
+                </p>
+              </div>
+
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3 mb-3">
+                  <i className="fas fa-heart-pulse text-rose-400"></i>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-rose-400">Health Signals</h4>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed italic">
+                  {isLoading ? "Detecting fatigue..." : advice?.wellness}
+                </p>
+              </div>
+
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3 mb-3">
+                  <i className="fas fa-scale-balanced text-emerald-400"></i>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400">Lifecycle Balance</h4>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed italic">
+                  {isLoading ? "Checking work-rest cycle..." : advice?.balance}
+                </p>
+              </div>
+            </div>
+            
+            {!isLoading && (
+              <div className="flex items-center gap-2 pt-2 text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                Contextual Analysis Active • Mode: {role.toUpperCase()}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

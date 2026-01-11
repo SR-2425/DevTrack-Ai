@@ -9,7 +9,8 @@ import Settings from './pages/Settings';
 import Repositories from './pages/Repositories';
 import Languages from './pages/Languages';
 import Insights from './pages/Insights';
-import Leaderboard from './pages/Leaderboard';
+import AdminDashboard from './pages/AdminDashboard';
+import Tasks from './pages/Tasks';
 
 const App: React.FC = () => {
   return (
@@ -17,12 +18,13 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         
-        {/* Protected Developer reflection routes */}
+        {/* Core Productivity Routes */}
         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+        <Route path="/tasks" element={<Layout><Tasks /></Layout>} />
+        <Route path="/admin" element={<Layout><AdminDashboard /></Layout>} />
         <Route path="/user-progress" element={<Layout><UserProgress /></Layout>} />
         <Route path="/repositories" element={<Layout><Repositories /></Layout>} />
         <Route path="/languages" element={<Layout><Languages /></Layout>} />
-        <Route path="/leaderboard" element={<Layout><Leaderboard /></Layout>} />
         <Route path="/insights" element={<Layout><Insights /></Layout>} />
         <Route path="/settings" element={<Layout><Settings /></Layout>} />
 

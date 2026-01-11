@@ -1,10 +1,9 @@
 
-import { DeveloperRank, SummaryStats, ActivityPoint, LanguageData } from './types';
+import { SummaryStats, ActivityPoint, LanguageData, TeamMember } from './types';
 
 export const MOCK_SUMMARY: SummaryStats = {
   totalCommits: 1422,
   productivityScore: 88,
-  currentRank: DeveloperRank.ELITE,
   levelProgress: 82,
   activityStreak: 18,
   weeklyVelocity: 48,
@@ -13,6 +12,13 @@ export const MOCK_SUMMARY: SummaryStats = {
   burnoutRisk: 'Medium',
   peakProductiveHours: '10 AM - 1 PM',
 };
+
+export const MOCK_TEAM_MEMBERS: TeamMember[] = [
+  { id: '1', name: 'Alex Rivers', avatar: 'https://picsum.photos/seed/alex/100/100', role: 'Fullstack Dev', commits: 1422, score: 88, burnoutRisk: 'Medium', status: 'online', topLanguage: 'TypeScript' },
+  { id: '2', name: 'Sarah Chen', avatar: 'https://picsum.photos/seed/sarah/100/100', role: 'Backend Lead', commits: 2560, score: 94, burnoutRisk: 'High', status: 'busy', topLanguage: 'Go' },
+  { id: '3', name: 'Mike Johnson', avatar: 'https://picsum.photos/seed/mike/100/100', role: 'Frontend Dev', commits: 890, score: 76, burnoutRisk: 'Low', status: 'online', topLanguage: 'React' },
+  { id: '4', name: 'Emma Wilson', avatar: 'https://picsum.photos/seed/emma/100/100', role: 'DevOps Eng', commits: 450, score: 62, burnoutRisk: 'Low', status: 'offline', topLanguage: 'Python' },
+];
 
 export const WEEKLY_ACTIVITY: ActivityPoint[] = [
   { label: 'Mon', commits: 8 },
@@ -39,11 +45,12 @@ export const MOCK_LANGUAGES: LanguageData[] = [
 ];
 
 export const NAVIGATION_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
-  { path: '/user-progress', label: 'Growth', icon: 'fa-user-graduate' },
-  { path: '/repositories', label: 'Repos', icon: 'fa-book' },
-  { path: '/languages', label: 'Skills', icon: 'fa-code' },
-  { path: '/leaderboard', label: 'Ranking', icon: 'fa-award' },
-  { path: '/insights', label: 'Reflection', icon: 'fa-lightbulb' },
-  { path: '/settings', label: 'Settings', icon: 'fa-cog' },
+  { path: '/dashboard', label: 'Dashboard', icon: 'fa-chart-pie', roles: ['individual', 'team', 'admin'] },
+  { path: '/tasks', label: 'Backlog', icon: 'fa-tasks', roles: ['individual', 'admin'] },
+  { path: '/admin', label: 'Team Admin', icon: 'fa-user-shield', roles: ['admin'] },
+  { path: '/user-progress', label: 'Growth', icon: 'fa-user-graduate', roles: ['individual'] },
+  { path: '/repositories', label: 'Repos', icon: 'fa-book', roles: ['individual'] },
+  { path: '/languages', label: 'Skills', icon: 'fa-code', roles: ['individual'] },
+  { path: '/insights', label: 'Insights', icon: 'fa-lightbulb', roles: ['individual', 'admin'] },
+  { path: '/settings', label: 'Settings', icon: 'fa-cog', roles: ['individual', 'admin'] },
 ];

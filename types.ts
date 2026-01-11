@@ -1,16 +1,9 @@
 
-export enum DeveloperRank {
-  NEWBIE = 'Newbie',
-  CODER = 'Coder',
-  PRO = 'Pro',
-  ELITE = 'Elite',
-  MASTER = 'Master'
-}
+export type UserRole = 'individual' | 'team' | 'admin';
 
 export interface SummaryStats {
   totalCommits: number;
   productivityScore: number;
-  currentRank: DeveloperRank;
   levelProgress: number;
   activityStreak: number;
   weeklyVelocity: number;
@@ -18,6 +11,18 @@ export interface SummaryStats {
   mostUsedLanguage: string;
   burnoutRisk: 'Low' | 'Medium' | 'High';
   peakProductiveHours: string;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  commits: number;
+  score: number;
+  burnoutRisk: 'Low' | 'Medium' | 'High';
+  status: 'online' | 'offline' | 'busy';
+  topLanguage: string;
 }
 
 export interface ActivityPoint {
@@ -31,4 +36,17 @@ export interface LanguageData {
   value: number;
   color: string;
   [key: string]: string | number;
+}
+
+export enum DeveloperRank {
+  MASTER = 'MASTER',
+  ELITE = 'ELITE',
+  PRO = 'PRO',
+  CODER = 'CODER',
+}
+
+export interface AIAssistantAdvice {
+  performance: string;
+  wellness: string;
+  balance: string;
 }
