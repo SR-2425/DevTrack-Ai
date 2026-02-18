@@ -1,4 +1,3 @@
-
 import { SummaryStats, ActivityPoint, LanguageData, TeamMember } from './types';
 
 export const MOCK_SUMMARY: SummaryStats = {
@@ -49,8 +48,7 @@ export const NAVIGATION_ITEMS = [
   { path: '/tasks', label: 'Backlog', icon: 'fa-tasks', roles: ['individual', 'admin'] },
   { path: '/admin', label: 'Team Admin', icon: 'fa-user-shield', roles: ['admin'] },
   { path: '/user-progress', label: 'Growth', icon: 'fa-user-graduate', roles: ['individual'] },
-  { path: '/repositories', label: 'Repos', icon: 'fa-book', roles: ['individual'] },
-  { path: '/languages', label: 'Skills', icon: 'fa-code', roles: ['individual'] },
   { path: '/insights', label: 'Insights', icon: 'fa-lightbulb', roles: ['individual', 'admin'] },
+  { path: '/documentation', label: 'Docs', icon: 'fa-book-open', roles: ['individual', 'admin', 'team'] },
   { path: '/settings', label: 'Settings', icon: 'fa-cog', roles: ['individual', 'admin'] },
 ];

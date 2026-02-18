@@ -1,13 +1,10 @@
-import { SummaryStats, ActivityPoint, LanguageData, UserRole, TeamMember } from '../types';
-import { db, Task } from './storageService';
-import { auth } from './authService';
 
-const LATENCY = 400; // ms
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { SummaryStats, ActivityPoint, LanguageData, UserRole, TeamMember, Task } from '../types';
+import { MOCK_SUMMARY, MOCK_TEAM_MEMBERS, WEEKLY_ACTIVITY, MONTHLY_ACTIVITY, MOCK_LANGUAGES } from '../constants';
 
 export const isUsingDemoData = (): boolean => {
-  return localStorage.getItem('data_mode') === 'demo';
+  const mode = localStorage.getItem('data_mode');
+  return mode === 'demo' || !mode;
 };
 
 export const getUserRole = (): UserRole => {
@@ -15,65 +12,77 @@ export const getUserRole = (): UserRole => {
 };
 
 export const getUserId = (): string => {
-  const user = auth.currentUser;
-  return user?.uid || '1'; // Fallback to demo ID if not logged in via Firebase
-};
-
-export const getUserMetadata = () => {
-  const user = auth.currentUser;
-  if (user) {
-    return {
-      name: user.displayName,
-      email: user.email,
-      avatar: user.photoURL,
-      uid: user.uid
-    };
-  }
-  return null;
+  return 'user-123';
 };
 
 export const fetchSummaryStats = async (): Promise<SummaryStats> => {
-  await sleep(LATENCY);
-  return db.getStats();
+  // Direct return for maximum performance
+  return MOCK_SUMMARY;
 };
 
 export const fetchTeamMembers = async (): Promise<TeamMember[]> => {
-  await sleep(LATENCY);
-  return db.getMembers();
-};
-
-export const fetchTasks = async (assigneeId?: string): Promise<Task[]> => {
-  await sleep(LATENCY);
-  return db.getTasks(assigneeId);
-};
-
-export const addTask = async (task: Omit<Task, 'id' | 'createdAt'>): Promise<Task> => {
-  await sleep(LATENCY);
-  return db.addTask(task);
-};
-
-export const updateTask = async (id: string, status: Task['status']): Promise<void> => {
-  await sleep(200);
-  return db.updateTaskStatus(id, status);
-};
-
-export const exportProjectReport = () => {
-  const data = db.exportData();
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `DevPulse_Report_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
+  return MOCK_TEAM_MEMBERS;
 };
 
 export const fetchActivityData = async (type: 'weekly' | 'monthly'): Promise<ActivityPoint[]> => {
-  await sleep(LATENCY);
-  const activity = await (type === 'weekly' ? import('../constants').then(c => c.WEEKLY_ACTIVITY) : import('../constants').then(c => c.MONTHLY_ACTIVITY));
-  return activity;
+  return type === 'weekly' ? WEEKLY_ACTIVITY : MONTHLY_ACTIVITY;
 };
 
 export const fetchLanguageData = async (): Promise<LanguageData[]> => {
-  await sleep(LATENCY);
-  return import('../constants').then(c => c.MOCK_LANGUAGES);
+  return MOCK_LANGUAGES;
+};
+
+/**
+ * Fetches tasks from local storage or returns mock defaults if none exist.
+ */
+export const fetchTasks = async (userId?: string): Promise<Task[]> => {
+  const tasksJson = localStorage.getItem('devtrack_tasks');
+  const tasks: Task[] = tasksJson ? JSON.parse(tasksJson) : [
+    { id: '1', title: 'Refactor Auth module', assignee: 'user-123', status: 'in-progress', priority: 'high' },
+    { id: '2', title: 'Implement Dashboard charts', assignee: 'user-123', status: 'todo', priority: 'medium' },
+    { id: '3', title: 'Fix CSS layout bugs', assignee: 'user-123', status: 'done', priority: 'low' }
+  ];
+  
+  if (userId) {
+    return tasks.filter(t => t.assignee === userId);
+  }
+  return tasks;
+};
+
+/**
+ * Adds a new task and persists it to local storage.
+ */
+export const addTask = async (task: Partial<Task>): Promise<void> => {
+  const tasks = await fetchTasks();
+  const newTask: Task = {
+    id: Math.random().toString(36).substring(2, 11),
+    title: task.title || 'Untitled Task',
+    assignee: task.assignee || 'user-123',
+    status: (task.status as Task['status']) || 'todo',
+    priority: (task.priority as Task['priority']) || 'medium'
+  };
+  localStorage.setItem('devtrack_tasks', JSON.stringify([...tasks, newTask]));
+};
+
+/**
+ * Updates the status of an existing task in local storage.
+ */
+export const updateTask = async (id: string, status: Task['status']): Promise<void> => {
+  const tasks = await fetchTasks();
+  const updatedTasks = tasks.map(t => t.id === id ? { ...t, status } : t);
+  localStorage.setItem('devtrack_tasks', JSON.stringify(updatedTasks));
+};
+
+export const exportProjectReport = () => {
+  const report = {
+    generatedAt: new Date().toISOString(),
+    stats: MOCK_SUMMARY,
+    team: MOCK_TEAM_MEMBERS
+  };
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `DevTrack_Report_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
 };

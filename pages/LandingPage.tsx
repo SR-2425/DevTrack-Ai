@@ -6,7 +6,6 @@ import { loginWithGitHub } from '../services/authService';
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleDemoEntry = (role: 'individual' | 'admin') => {
     localStorage.setItem('data_mode', 'demo');
@@ -17,90 +16,106 @@ const LandingPage: React.FC = () => {
 
   const handleGitHubLogin = async () => {
     setIsConnecting(true);
-    setError(null);
     try {
       await loginWithGitHub();
       navigate('/dashboard');
-    } catch (err: any) {
-      setError("Authentication failed. Ensure Firebase config is valid.");
+    } catch (err) {
       setIsConnecting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 selection:bg-blue-500 overflow-hidden relative">
-      <div className="absolute top-0 w-full h-1/2 bg-blue-600/5 blur-[100px] rounded-full"></div>
-      
-      <div className="relative z-10 text-center max-w-5xl w-full">
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <motion.div 
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 4 }}
-            className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"
-          >
-            <i className="fas fa-bolt text-2xl"></i>
-          </motion.div>
-          <span className="text-3xl font-black tracking-tight">DevPulse</span>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col relative overflow-hidden font-sans">
+      {/* Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-blue-600/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6"
+      {/* Top Header / View Demo Button */}
+      <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-20">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+            <i className="fas fa-bolt text-white text-xs"></i>
+          </div>
+          <span className="font-black text-xl tracking-tight uppercase">DevTrack</span>
+        </div>
+        <button 
+          onClick={() => handleDemoEntry('individual')}
+          className="text-[10px] font-black uppercase tracking-[0.2em] px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
         >
-          Engineering <span className="text-blue-500">Intelligence</span> <br />
-          <span className="text-slate-200">for Modern Teams</span>
-        </motion.h1>
-        
-        <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
-          Actionable metrics, burnout signals, and AI-powered wellness coaching. Secure your environment to begin.
-        </p>
-
-        {/* Primary Auth Action */}
-        <div className="mb-16 flex flex-col items-center gap-4">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleGitHubLogin}
-            className="flex items-center gap-4 bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-lg shadow-2xl shadow-white/10 hover:bg-slate-100 transition-all"
-          >
-            <i className="fab fa-github text-2xl"></i>
-            Continue with GitHub
-          </motion.button>
-          {error && <p className="text-rose-500 text-xs font-bold uppercase tracking-widest">{error}</p>}
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto px-4">
-          <motion.button 
-            whileHover={{ y: -8, scale: 1.02 }}
-            onClick={() => handleDemoEntry('individual')}
-            className="p-10 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-3xl text-left hover:border-blue-500/50 transition-all group relative overflow-hidden"
-          >
-            <i className="fas fa-flask text-blue-500 mb-6 text-2xl"></i>
-            <h3 className="text-2xl font-bold mb-2">Personal Demo</h3>
-            <p className="text-sm text-slate-400 leading-relaxed italic">Explore features with sandbox data.</p>
-          </motion.button>
-
-          <motion.button 
-            whileHover={{ y: -8, scale: 1.02 }}
-            onClick={() => handleDemoEntry('admin')}
-            className="p-10 bg-blue-600 rounded-3xl text-left hover:bg-blue-500 transition-all shadow-2xl shadow-blue-600/20 group relative overflow-hidden"
-          >
-            <i className="fas fa-shield-halved text-white mb-6 text-2xl"></i>
-            <h3 className="text-2xl font-bold mb-2">Admin Demo</h3>
-            <p className="text-sm text-blue-100 leading-relaxed italic">Management-level insights sandbox.</p>
-          </motion.button>
-        </div>
+          Try Demo
+        </button>
       </div>
       
-      <footer className="mt-20 text-[10px] uppercase font-black tracking-[0.3em] text-slate-700">
-        DevPulse Framework &bull; Built for High Performance &bull; 2025
-      </footer>
+      <div className="flex-grow flex flex-col items-center justify-center p-6 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
+        >
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 leading-tight max-w-3xl">
+            Track Your Coding Habits <br /> 
+            <span className="text-slate-400">& Grow Your Skills.</span>
+          </h1>
+          <p className="text-base text-slate-500 max-w-lg mx-auto font-medium">
+            Get simple, automated insights to help you code better, stay healthy, and level up your career.
+          </p>
+        </motion.div>
+
+        {/* 2-Column Action Grid */}
+        <div className="grid md:grid-cols-2 gap-6 w-full max-w-2xl">
+          <motion.button 
+            whileHover={{ y: -4, borderColor: 'rgba(59, 130, 246, 0.5)' }}
+            onClick={() => handleDemoEntry('individual')}
+            className="p-10 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] text-left transition-all group"
+          >
+            <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 text-blue-500 border border-blue-500/20">
+              <i className="fas fa-user-ninja text-xl"></i>
+            </div>
+            <h3 className="text-xl font-black mb-2">Personal View</h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">See your coding speed, favorite languages, and get tips to avoid burnout.</p>
+            <div className="mt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-500 group-hover:translate-x-1 transition-transform">
+              Open My Dashboard <i className="fas fa-arrow-right"></i>
+            </div>
+          </motion.button>
+
+          <motion.button 
+            whileHover={{ y: -4, borderColor: 'rgba(99, 102, 241, 0.5)' }}
+            onClick={() => handleDemoEntry('admin')}
+            className="p-10 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] text-left transition-all group"
+          >
+            <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 text-indigo-400 border border-indigo-500/20">
+              <i className="fas fa-shield-halved text-xl"></i>
+            </div>
+            <h3 className="text-xl font-black mb-2">Team View</h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">Check team health, export reports, and help everyone work better together.</p>
+            <div className="mt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400 group-hover:translate-x-1 transition-transform">
+              Open Team Panel <i className="fas fa-arrow-right"></i>
+            </div>
+          </motion.button>
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-12"
+        >
+          <button 
+            onClick={handleGitHubLogin}
+            className="text-[10px] text-slate-600 hover:text-white font-black uppercase tracking-[0.3em] transition-colors"
+          >
+            Connect with GitHub <i className="fab fa-github ml-2"></i>
+          </button>
+        </motion.div>
+      </div>
+      
+      <div className="p-8 text-center text-[9px] font-black uppercase tracking-[0.5em] text-slate-800">
+        DevTrack Systems • 2025
+      </div>
 
       {isConnecting && (
-        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-black uppercase tracking-widest text-blue-500 animate-pulse">Syncing Environment...</p>
+        <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center">
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 animate-pulse">Setting up your view...</p>
         </div>
       )}
     </div>

@@ -1,222 +1,246 @@
-
 import React, { useState, useEffect } from 'react';
 import { SummaryCard } from '../components/DashboardCards';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getDeveloperAssistantAdvice } from '../services/geminiService';
-import { fetchSummaryStats, fetchActivityData, isUsingDemoData, getUserRole } from '../services/apiService';
+import { fetchSummaryStats, fetchActivityData, isUsingDemoData } from '../services/apiService';
 import { SummaryStats, ActivityPoint, AIAssistantAdvice } from '../types';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import ActivityAreaChart from '../components/charts/types/ActivityAreaChart';
 
 const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
   const [stats, setStats] = useState<SummaryStats | null>(null);
   const [activity, setActivity] = useState<ActivityPoint[]>([]);
   const [advice, setAdvice] = useState<AIAssistantAdvice | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const role = getUserRole();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
-      const s = await fetchSummaryStats();
-      const a = await fetchActivityData(viewMode);
+      setIsInitialLoading(true);
+      const [s, a] = await Promise.all([
+        fetchSummaryStats(),
+        fetchActivityData(viewMode)
+      ]);
       setStats(s);
       setActivity(a);
-      
-      const assistantAdvice = await getDeveloperAssistantAdvice(s);
-      setAdvice(assistantAdvice);
-      setIsLoading(false);
+      setIsInitialLoading(false);
     };
     loadData();
   }, [viewMode]);
 
-  if (!stats) return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+  const handleDeepAnalysis = async () => {
+    if (!stats) return;
+    setIsAnalyzing(true);
+    // Visual feedback for AI scanning
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    const assistantAdvice = await getDeveloperAssistantAdvice(stats);
+    setAdvice(assistantAdvice);
+    setIsAnalyzing(false);
+  };
+
+  if (isInitialLoading || !stats) return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 animate-pulse italic">Syncing your workspace...</p>
     </div>
   );
 
-  const titlePrefix = role === 'admin' ? 'Organization' : role === 'team' ? 'Team' : 'Personal';
-
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-4">
+    <div className="space-y-8 pb-20">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{titlePrefix} Dashboard</h1>
-          <p className="text-xs text-slate-500">
-            {isUsingDemoData() ? 'Viewing Mock Data Context' : 'Real-time Analytics Feed'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-           <div className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${isUsingDemoData() ? 'bg-amber-100 text-amber-600' : 'bg-blue-50 text-blue-500 dark:bg-blue-900/10'}`}>
-            {isUsingDemoData() ? 'Sandbox Mode' : 'Live Sync'}
+          <div className="flex items-center gap-3 mb-2">
+             <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                <span className={`w-2 h-2 rounded-full ${isUsingDemoData() ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">
+                  {isUsingDemoData() ? 'Sandbox Mode' : 'Live Connection'}
+                </span>
+             </div>
+             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500/50">v4.1</span>
           </div>
-          <div className="text-[10px] font-black px-3 py-1 bg-slate-900 text-white rounded-full uppercase tracking-widest">
-            Role: {role}
-          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white leading-tight">My Coding Pulse</h1>
+          <p className="text-sm text-slate-500 font-medium mt-2">A quick look at your work habits and technical progress.</p>
         </div>
+
+        <button 
+          onClick={handleDeepAnalysis}
+          disabled={isAnalyzing}
+          className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all flex items-center gap-4 shadow-2xl ${
+            isAnalyzing 
+              ? 'bg-slate-200 text-slate-400 dark:bg-slate-800 cursor-not-allowed' 
+              : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1 shadow-blue-500/30'
+          }`}
+        >
+          {isAnalyzing ? (
+            <><i className="fas fa-circle-notch fa-spin"></i> Analyzing...</>
+          ) : (
+            <><i className="fas fa-brain"></i> Get AI Insights</>
+          )}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
         <SummaryCard 
-          label={role === 'individual' ? "Total Commits" : "Team Output"} 
-          value={stats.totalCommits} 
+          label="Total Updates" 
+          value={stats.totalCommits.toLocaleString()} 
           icon="fa-code-commit" 
-          colorClass="bg-blue-100 text-blue-600"
-          description="Total contribution points aggregated from connected repositories."
+          colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30"
+          description="The total number of code changes you've made."
         />
         <SummaryCard 
-          label="Pulse Score" 
-          value={stats.productivityScore} 
-          icon="fa-bolt" 
-          colorClass="bg-amber-100 text-amber-600"
-          description="Algorithmic assessment of work-to-maintenance ratio."
+          label="Output Score" 
+          value={`${stats.productivityScore}%`} 
+          icon="fa-bolt-lightning" 
+          colorClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30"
+          description="A calculated score based on your work speed and quality."
         />
         <SummaryCard 
-          label="Top Stack" 
+          label="Main Language" 
           value={stats.mostUsedLanguage} 
-          icon="fa-code" 
-          colorClass="bg-emerald-100 text-emerald-600"
+          icon="fa-terminal" 
+          colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30"
         />
         <SummaryCard 
-          label="Active Hours" 
+          label="Best Time" 
           value={stats.peakProductiveHours} 
           icon="fa-clock" 
-          colorClass="bg-violet-100 text-violet-600"
+          colorClass="bg-violet-100 text-violet-600 dark:bg-violet-900/30"
         />
         <SummaryCard 
-          label="Active Streak" 
-          value={stats.activityStreak} 
-          icon="fa-fire" 
-          colorClass="bg-orange-100 text-orange-600"
+          label="Daily Streak" 
+          value={`${stats.activityStreak}d`} 
+          icon="fa-fire-flame-curved" 
+          colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30"
         />
         <SummaryCard 
-          label="Work Velocity" 
+          label="Weekly Speed" 
           value={stats.weeklyVelocity} 
           icon="fa-gauge-high" 
-          colorClass="bg-indigo-100 text-indigo-600"
+          colorClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30"
         />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 dark:text-white">Trend Analysis</h3>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-              <button onClick={() => setViewMode('weekly')} className={`px-4 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-400' : 'text-slate-500'}`}>Weekly</button>
-              <button onClick={() => setViewMode('monthly')} className={`px-4 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-400' : 'text-slate-500'}`}>Monthly</button>
-            </div>
+      <div className="grid lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          {/* Refactored Chart Component */}
+          <div className="h-full">
+            <ActivityAreaChart data={activity} isLoading={isInitialLoading} />
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activity}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#94a3b8" fontSize={10} />
-                <YAxis axisLine={false} tickLine={false} stroke="#94a3b8" fontSize={10} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Area type="monotone" dataKey="commits" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+
+          <AnimatePresence mode="wait">
+            {(advice || isAnalyzing) && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-slate-900 border border-slate-800 rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl"
+              >
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
+                
+                <div className="flex flex-col lg:flex-row gap-12 items-center relative z-10">
+                  <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center shrink-0 shadow-2xl relative ${isAnalyzing ? 'bg-blue-600/20' : 'bg-blue-600 shadow-blue-500/30'}`}>
+                    <i className={`fas ${isAnalyzing ? 'fa-sync fa-spin' : 'fa-brain'} text-4xl`}></i>
+                  </div>
+                  
+                  <div className="flex-grow space-y-10 w-full">
+                    <div className="text-center lg:text-left">
+                      <h2 className="text-3xl font-black tracking-tight mb-2">Your AI Growth Advice</h2>
+                      <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.4em]">Personalized coaching report</p>
+                    </div>
+
+                    {isAnalyzing ? (
+                      <div className="grid md:grid-cols-3 gap-8">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="bg-white/5 h-32 rounded-3xl border border-white/5 animate-pulse"></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid md:grid-cols-3 gap-8">
+                        <div className="bg-white/5 p-8 rounded-3xl border border-white/5 hover:bg-white/10 transition-all hover:scale-[1.02]">
+                          <p className="text-[10px] uppercase font-black tracking-widest text-blue-400 mb-4">Efficiency</p>
+                          <p className="text-sm text-slate-200 leading-relaxed font-semibold italic">"{advice?.performance}"</p>
+                        </div>
+                        <div className="bg-white/5 p-8 rounded-3xl border border-white/5 hover:bg-white/10 transition-all hover:scale-[1.02]">
+                          <p className="text-[10px] uppercase font-black tracking-widest text-emerald-400 mb-4">Wellbeing</p>
+                          <p className="text-sm text-slate-200 leading-relaxed font-semibold italic">"{advice?.wellness}"</p>
+                        </div>
+                        <div className="bg-white/5 p-8 rounded-3xl border border-white/5 hover:bg-white/10 transition-all hover:scale-[1.02]">
+                          <p className="text-[10px] uppercase font-black tracking-widest text-amber-400 mb-4">Work Balance</p>
+                          <p className="text-sm text-slate-200 leading-relaxed font-semibold italic">"{advice?.balance}"</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-4 text-xs uppercase tracking-widest text-slate-500">Burnout Monitor</h3>
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-white dark:bg-slate-900 p-8 md:p-10 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800/60 shadow-xl shadow-slate-900/[0.02]">
+            <h3 className="font-black mb-8 text-[11px] uppercase tracking-[0.4em] text-slate-400 text-center">Sync Status</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">System Risk</span>
-                <span className={`font-bold ${stats.burnoutRisk === 'High' ? 'text-red-500' : stats.burnoutRisk === 'Medium' ? 'text-amber-500' : 'text-emerald-500'}`}>{stats.burnoutRisk}</span>
-              </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-1000 ${stats.burnoutRisk === 'High' ? 'bg-red-500 w-full' : stats.burnoutRisk === 'Medium' ? 'bg-amber-500 w-1/2' : 'bg-emerald-500 w-1/4'}`}
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 italic">Determined by commit timing consistency and weekend activity patterns.</p>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-4 text-xs uppercase tracking-widest text-slate-500">Momentum Radar</h3>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: 28 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`aspect-square rounded-sm ${ (i % 7 < 4 || i % 5 === 0) ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'}`}
-                ></div>
+              {[
+                { name: 'Coding Activity', status: 'Connected', icon: 'fa-code-branch' },
+                { name: 'Daily Trends', status: 'Ready', icon: 'fa-chart-line' },
+                { name: 'Language Use', status: 'Ready', icon: 'fa-layer-group' },
+                { name: 'Wellbeing Check', status: 'Ready', icon: 'fa-heartbeat' },
+              ].map((source, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-slate-400 shadow-sm group-hover:text-blue-500 transition-colors">
+                      <i className={`fas ${source.icon} text-sm`}></i>
+                    </div>
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 tracking-tight">{source.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${source.status === 'Connected' ? 'bg-emerald-500' : 'bg-blue-500'}`}></div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{source.status}</span>
+                  </div>
+                </div>
               ))}
             </div>
-            <p className="text-[10px] text-slate-400 mt-3 text-center uppercase font-black">28-Day Heatmap</p>
+            
+            <div className="mt-10 pt-10 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Wellbeing Check</span>
+                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${
+                  stats.burnoutRisk === 'High' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {stats.burnoutRisk} RISK
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: stats.burnoutRisk === 'High' ? '85%' : stats.burnoutRisk === 'Medium' ? '45%' : '15%' }}
+                  className={`h-full transition-all duration-1000 ${stats.burnoutRisk === 'High' ? 'bg-rose-500' : 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'}`}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4 leading-relaxed text-center italic opacity-60">Based on your recent coding hours.</p>
+            </div>
           </div>
+
+          {!advice && !isAnalyzing && (
+            <motion.div 
+              whileHover={{ y: -5 }}
+              className="bg-blue-600 p-10 rounded-[2.5rem] text-white shadow-2xl shadow-blue-600/30 relative overflow-hidden"
+            >
+              <h4 className="font-black text-2xl mb-3 tracking-tighter">AI Analysis Ready</h4>
+              <p className="text-xs text-blue-100 leading-relaxed mb-8 font-medium">
+                Your data is synced. Run a scan to get personalized advice on how to grow your career and stay balanced.
+              </p>
+              <button 
+                onClick={handleDeepAnalysis}
+                className="w-full py-4 bg-white text-blue-600 rounded-[1.2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-3"
+              >
+                Scan Now <i className="fas fa-arrow-right text-[8px]"></i>
+              </button>
+            </motion.div>
+          )}
         </div>
       </div>
-
-      {/* AI Assistant - Integrated Bottom Panel */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-slate-900 dark:bg-slate-900 border border-slate-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <i className="fas fa-robot text-8xl rotate-12"></i>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-          <div className="shrink-0">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <i className="fas fa-brain text-2xl"></i>
-            </div>
-          </div>
-          
-          <div className="flex-grow space-y-8 w-full">
-            <div>
-              <h2 className="text-xl font-bold mb-2">DevPulse AI Assistant</h2>
-              <p className="text-slate-400 text-sm">Providing {role}-focused coaching based on the latest performance telemetry.</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
-                  <i className="fas fa-rocket text-blue-400"></i>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-blue-400">Optimization</h4>
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed italic">
-                  {isLoading ? "Consulting logs..." : advice?.performance}
-                </p>
-              </div>
-
-              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
-                  <i className="fas fa-heart-pulse text-rose-400"></i>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-rose-400">Health Signals</h4>
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed italic">
-                  {isLoading ? "Detecting fatigue..." : advice?.wellness}
-                </p>
-              </div>
-
-              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
-                  <i className="fas fa-scale-balanced text-emerald-400"></i>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400">Lifecycle Balance</h4>
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed italic">
-                  {isLoading ? "Checking work-rest cycle..." : advice?.balance}
-                </p>
-              </div>
-            </div>
-            
-            {!isLoading && (
-              <div className="flex items-center gap-2 pt-2 text-[10px] text-slate-500 uppercase font-bold tracking-widest">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                Contextual Analysis Active • Mode: {role.toUpperCase()}
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 };

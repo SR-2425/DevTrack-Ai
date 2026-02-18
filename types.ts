@@ -32,7 +32,7 @@ export interface ActivityPoint {
 }
 
 export interface LanguageData {
-  name: string;
+  name:string;
   value: number;
   color: string;
   [key: string]: string | number;
@@ -49,4 +49,25 @@ export interface AIAssistantAdvice {
   performance: string;
   wellness: string;
   balance: string;
+}
+
+/**
+ * Interface representing a project task for the kanban board.
+ */
+export interface Task {
+  id: string;
+  title: string;
+  assignee: string;
+  status: 'todo' | 'in-progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+}
+
+/**
+ * Props for the BaseChart wrapper component.
+ */
+export interface BaseChartProps {
+  title: string;
+  description?: string;
+  isLoading?: boolean;
+  children: React.ReactNode;
 }
